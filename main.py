@@ -1,60 +1,48 @@
-import uuid
 import re
+import json
 import time
+import uuid
 from datasets import load_dataset
 
-def parse_questions_answers(entry):
-    """Parse questions and answers from an entry."""
-    qa_pairs = []
-    # Assuming questions are followed by their answers in the format "Question? Yes/No"
-    qa_pattern = re.compile(r"(?P<question>.*?\?)\s*(?P<answer>(Yes|No))", re.IGNORECASE)
-    
-    matches = qa_pattern.findall(entry)
-    for match in matches:
-        qa_pairs.append({
+def parse_qa_pairs(entry):
+    # Regex pattern to match question-answer pairs
+    qa_pattern = re.compile(r'(.*?)(Yes|No)\s')
+    pairs = re.findall(qa_pattern, entry)
+    return pairs
+
+def save_to_json(pairs, filename='reformatted_dataset.json'):
+    data = []
+    for question, answer in pairs:
+        data.append({
             "id": str(uuid.uuid4()),
-            "Question": match[0].strip(),
-            "Answer": match[1].strip().capitalize()
+            "Question": question.strip(),
+            "Answer": answer.strip()
         })
-    return qa_pairs
-
-def transform_dataset(data):
-    """Transform the entire dataset."""
-    all_qa_pairs = []
-    for entry in data['input']:
-        qa_pairs = parse_questions_answers(entry)
-        all_qa_pairs.extend(qa_pairs)
-    return all_qa_pairs
-
-def save_to_json(data, output_file):
-    """Save the transformed data to a JSON file."""
-    with open(output_file, 'w', encoding='utf-8') as f:
-        json.dump(data, f, ensure_ascii=False, indent=4)
-
-def main():
-    output_file = 'reformatted_dataset.json'
     
-    # Start the timer
-    start_time = time.time()
+    with open(filename, 'w') as f:
+        json.dump(data, f, indent=4)
 
-    # Load the dataset
-    dataset = load_dataset('AdaptLLM/finance-tasks', 'headline')
+# Load the dataset
+dataset = load_dataset('AdaptLLM/finance-tasks', 'Headline')
 
-    # Transform the dataset
-    transformed_data = transform_dataset(dataset)
-    
-    # Save the reformatted dataset
-    save_to_json(transformed_data, output_file)
-    
-    # Stop the timer
-    end_time = time.time()
-    
-    # Report statistics
-    total_pairs = len(transformed_data)
-    time_taken = end_time - start_time
-    
-    print(f"Total number of question-answer pairs extracted: {total_pairs}")
-    print(f"Time taken for transformation: {time_taken:.2f} seconds")
+# Use the 'test' split
+data_split = 'test'
 
-if __name__ == "__main__":
-    main()
+start_time = time.time()
+
+all_qa_pairs = []
+for entry in dataset[data_split]:
+    input_text = entry['input']
+    pairs = parse_qa_pairs(input_text)
+    all_qa_pairs.extend(pairs)
+
+# Save the results to a JSON file
+save_to_json(all_qa_pairs)
+
+end_time = time.time()
+time_taken = end_time - start_time
+
+# Reporting statistics
+total_pairs = len(all_qa_pairs)
+print(f"Total question-answer pairs extracted: {total_pairs}")
+print(f"Time taken for the process: {time_taken:.2f} seconds")
