@@ -5,12 +5,18 @@ import uuid
 from datasets import load_dataset
 
 def parse_qa_pairs(entry):
+    """
+    Parses the input text to extract question-answer pairs.
+    """
     # Regex pattern to match question-answer pairs
     qa_pattern = re.compile(r'(.*?)(Yes|No)\s')
     pairs = re.findall(qa_pattern, entry)
     return pairs
 
 def save_to_json(pairs, filename='reformatted_dataset.json'):
+    """
+    Saves the extracted question-answer pairs to a JSON file with the specified format.
+    """
     data = []
     for question, answer in pairs:
         data.append({
@@ -46,3 +52,11 @@ time_taken = end_time - start_time
 total_pairs = len(all_qa_pairs)
 print(f"Total question-answer pairs extracted: {total_pairs}")
 print(f"Time taken for the process: {time_taken:.2f} seconds")
+
+# Schema Documentation (Printed for clarity)
+schema = {
+    "id": "<unique_identifier>",
+    "Question": "<question_text>",
+    "Answer": "<answer_text>"
+}
+print("Schema of the reformatted dataset:", json.dumps(schema, indent=4))
